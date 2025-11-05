@@ -125,7 +125,9 @@ def mostrar_resultados_retiro_mensual(
     retiro_mensual: float,
     meses: int,
     total_retirado: float,
-    vf: float
+    capital_neto: float,
+    impuesto: float = None,
+    tipo_bolsa: str = None
 ):
     """
     Muestra los resultados de retiros mensuales.
@@ -134,7 +136,9 @@ def mostrar_resultados_retiro_mensual(
         retiro_mensual: Monto de retiro mensual
         meses: Número de meses de retiro
         total_retirado: Total que se retirará
-        vf: Valor Futuro original
+        capital_neto: Capital disponible para retiros (después de impuestos)
+        impuesto: Monto de impuesto (opcional)
+        tipo_bolsa: Tipo de inversión (opcional)
     """
     st.subheader("💳 Retiros Mensuales")
     
@@ -158,4 +162,28 @@ def mostrar_resultados_retiro_mensual(
             value=f"{MONEDA} {total_retirado:,.2f}"
         )
     
-    st.info(f"💡 Se utilizará el valor futuro de {MONEDA} {vf:,.2f} para generar estos retiros mensuales")
+    if impuesto is not None and impuesto > 0:
+        st.divider()
+        
+        col1, col2 = st.columns(2)
+        
+        tasa_impuesto = "5%" if tipo_bolsa == "Nacional" else "29.5%"
+        
+        with col1:
+            st.metric(
+                label=f"Impuesto Aplicado ({tasa_impuesto})",
+                value=f"{MONEDA} {impuesto:,.2f}",
+                delta=f"-{MONEDA} {impuesto:,.2f}",
+                delta_color="inverse"
+            )
+        
+        with col2:
+            st.metric(
+                label="Capital Neto Disponible",
+                value=f"{MONEDA} {capital_neto:,.2f}",
+                help="Capital después de impuestos usado para calcular retiros"
+            )
+        
+        st.info(f"💡 Se aplicó un impuesto del **{tasa_impuesto}** sobre las ganancias antes de calcular los retiros mensuales")
+    else:
+        st.info(f"💡 Se utilizará el capital de {MONEDA} {capital_neto:,.2f} para generar estos retiros mensuales")

@@ -6,12 +6,13 @@ from src.ui.display import (
     mostrar_resultados_retiro_total,
     mostrar_resultados_retiro_mensual
 )
+from src.ui.comparacion import render_comparacion_escenarios
 from src.calculations.financial_calcs import calcular_vf_combinado, calcular_beneficio_bruto
 from src.calculations.tax_calcs import (
     calcular_impuesto_retiro_total,
     calcular_monto_neto_retiro_total,
     calcular_tasa_mensual_retiro,
-    calcular_retiro_mensual
+    calcular_retiro_mensual_con_impuestos
 )
 from src.visualization.charts import (
     generar_evolucion_inversion,
@@ -134,23 +135,31 @@ def render_acciones_page():
         with col2:
             st.info(f"📅 Equivale a **{meses_retiro/12:.1f} años** de retiros")
         
-        # Calcular retiro mensual
+        # Calcular retiro mensual con impuestos
         tasa_mensual_retiro = calcular_tasa_mensual_retiro(datos["tea"])
-        retiro_mensual = calcular_retiro_mensual(vf, tasa_mensual_retiro, meses_retiro)
-        total_retirado = retiro_mensual * meses_retiro
+        resultado_retiro = calcular_retiro_mensual_con_impuestos(
+            vf=vf,
+            beneficio_bruto=beneficio_bruto,
+            tasa_mensual_retiro=tasa_mensual_retiro,
+            meses=meses_retiro,
+            tipo_bolsa=datos["tipo_bolsa"]
+        )
         
         mostrar_resultados_retiro_mensual(
-            retiro_mensual=retiro_mensual,
+            retiro_mensual=resultado_retiro['retiro_mensual'],
             meses=meses_retiro,
-            total_retirado=total_retirado,
-            vf=vf
+            total_retirado=resultado_retiro['total_retirado'],
+            capital_neto=resultado_retiro['capital_neto'],
+            impuesto=resultado_retiro['impuesto'],
+            tipo_bolsa=datos["tipo_bolsa"]
         )
         
         st.info(f"""
         💡 **Nota sobre retiros mensuales:**
         - Se calcula una tasa mensual especial: (1/2) × TEA = {tasa_mensual_retiro*100:.2f}%
-        - Esta tasa permite que el capital se mantenga generando rendimientos durante los retiros
-        - El total retirado ({MONEDA} {total_retirado:,.2f}) puede ser mayor al VF inicial debido a los intereses generados durante el periodo de retiro
+        - Se aplican impuestos sobre las ganancias antes de calcular los retiros
+        - El capital neto ({MONEDA} {resultado_retiro['capital_neto']:,.2f}) se usa para generar rendimientos durante los retiros
+        - El total retirado ({MONEDA} {resultado_retiro['total_retirado']:,.2f}) puede ser mayor al capital neto debido a los intereses generados durante el periodo de retiro
         """)
     
     st.divider()
@@ -168,15 +177,21 @@ def render_acciones_page():
         **Impuestos:**
         - Se aplican sobre la ganancia (VF - Inversión Total)
         - Nacional: 5% | Extranjera: 29.5%
-        - Solo en retiro total
+        - Se aplican tanto en retiro total como en retiros mensuales
         
         **Retiros Mensuales:**
         - Utiliza una tasa especial: (1/2) × TEA
+        - Se aplican impuestos sobre las ganancias antes de calcular los retiros
+        - El capital neto (después de impuestos) se usa para generar los retiros mensuales
         - El capital sigue generando intereses durante los retiros
-        - Los retiros mensuales NO incluyen el descuento de impuestos en esta versión
         
         **Capitalización:**
         - La TEA se convierte a tasa efectiva del periodo
         - Fórmula: tasa_periodo = (1 + TEA)^(1/n) - 1
         - Donde n es la frecuencia anual (12=mensual, 4=trimestral, etc.)
         """)
+    
+    st.divider()
+    
+    # Comparación de escenarios
+    render_comparacion_escenarios(datos)
