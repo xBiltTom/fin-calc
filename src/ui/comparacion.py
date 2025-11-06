@@ -154,7 +154,7 @@ def render_comparacion_escenarios(datos_base: dict):
             tea_1 = st.number_input(
                 "TEA 1 (%)",
                 min_value=0.0,
-                max_value=100.0,
+                max_value=50.0,
                 value=max(5.0, datos_base["tea_pct"] - 3),
                 step=0.5,
                 format="%.2f"
@@ -164,7 +164,7 @@ def render_comparacion_escenarios(datos_base: dict):
             tea_2 = st.number_input(
                 "TEA 2 (%)",
                 min_value=0.0,
-                max_value=100.0,
+                max_value=50.0,
                 value=datos_base["tea_pct"],
                 step=0.5,
                 format="%.2f"
@@ -174,8 +174,8 @@ def render_comparacion_escenarios(datos_base: dict):
             tea_3 = st.number_input(
                 "TEA 3 (%)",
                 min_value=0.0,
-                max_value=100.0,
-                value=datos_base["tea_pct"] + 3,
+                max_value=50.0,
+                value=min(datos_base["tea_pct"] + 3, 50.0),
                 step=0.5,
                 format="%.2f"
             )
@@ -212,7 +212,7 @@ def render_comparacion_escenarios(datos_base: dict):
             tea_cons = st.number_input(
                 "TEA (%)",
                 min_value=0.0,
-                max_value=100.0,
+                max_value=50.0,
                 value=max(5.0, datos_base["tea_pct"] - 2),
                 step=0.5,
                 format="%.2f",
@@ -234,7 +234,7 @@ def render_comparacion_escenarios(datos_base: dict):
             tea_mod = st.number_input(
                 "TEA (%)",
                 min_value=0.0,
-                max_value=100.0,
+                max_value=50.0,
                 value=datos_base["tea_pct"],
                 step=0.5,
                 format="%.2f",
@@ -256,8 +256,8 @@ def render_comparacion_escenarios(datos_base: dict):
             tea_agr = st.number_input(
                 "TEA (%)",
                 min_value=0.0,
-                max_value=100.0,
-                value=datos_base["tea_pct"] + 3,
+                max_value=50.0,
+                value=min(datos_base["tea_pct"] + 3, 50.0),
                 step=0.5,
                 format="%.2f",
                 key="tea_agr"

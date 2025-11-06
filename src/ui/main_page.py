@@ -19,6 +19,12 @@ from src.visualization.charts import (
     crear_grafico_comparativo,
     crear_grafico_composicion
 )
+from src.utils.tables import (
+    generar_tabla_crecimiento,
+    formatear_tabla_crecimiento,
+    generar_resumen_tabla
+)
+from src.utils.pdf_generator import crear_pdf_acciones
 from config.constants import MONEDA
 
 
@@ -66,6 +72,16 @@ def render_acciones_page():
     inversion_total = datos["valor_presente"] + total_aportes
     beneficio_bruto = calcular_beneficio_bruto(vf, inversion_total)
     
+    # Generar tabla de crecimiento (se usará para PDF y visualización)
+    df_tabla_crecimiento = generar_tabla_crecimiento(
+        vp=datos["valor_presente"],
+        aporte=datos["aporte_periodico"],
+        tea=datos["tea"],
+        frecuencia_anual=datos["frecuencia_anual"],
+        plazo_años=datos["plazo_años"],
+        moneda=MONEDA
+    )
+    
     # Mostrar resultados VF
     mostrar_resultados_vf(vf, inversion_total, beneficio_bruto)
     
@@ -73,15 +89,102 @@ def render_acciones_page():
     
     # Generar y mostrar gráfico de evolución
     st.header("📈 Evolución de la Inversión")
-    df_evolucion = generar_evolucion_inversion(
-        vp=datos["valor_presente"],
-        aporte=datos["aporte_periodico"],
-        tea=datos["tea"],
-        frecuencia_anual=datos["frecuencia_anual"],
-        plazo_años=datos["plazo_años"]
-    )
-    fig_evolucion = crear_grafico_comparativo(df_evolucion, MONEDA)
-    st.plotly_chart(fig_evolucion, use_container_width=True)
+    
+    # Tabs para gráfico y tabla
+    tab1, tab2 = st.tabs(["📊 Gráfico", "📋 Tabla Detallada"])
+    
+    with tab1:
+        df_evolucion = generar_evolucion_inversion(
+            vp=datos["valor_presente"],
+            aporte=datos["aporte_periodico"],
+            tea=datos["tea"],
+            frecuencia_anual=datos["frecuencia_anual"],
+            plazo_años=datos["plazo_años"]
+        )
+        fig_evolucion = crear_grafico_comparativo(df_evolucion, MONEDA)
+        st.plotly_chart(fig_evolucion, use_container_width=True)
+    
+    with tab2:
+        st.subheader("📋 Tabla de Crecimiento Detallada")
+        
+        # Usar la tabla ya generada
+        df_tabla = df_tabla_crecimiento
+        
+        # Mostrar resumen de la tabla
+        resumen = generar_resumen_tabla(df_tabla, MONEDA)
+        
+        st.markdown("#### 📊 Resumen General")
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            st.metric(
+                label="Saldo Inicial",
+                value=f"{MONEDA} {resumen['saldo_inicial']:,.2f}"
+            )
+        
+        with col2:
+            st.metric(
+                label="Total Aportes",
+                value=f"{MONEDA} {resumen['total_aportes']:,.2f}"
+            )
+        
+        with col3:
+            st.metric(
+                label="Total Intereses",
+                value=f"{MONEDA} {resumen['total_intereses']:,.2f}",
+                delta="Ganado"
+            )
+        
+        with col4:
+            st.metric(
+                label="Saldo Final",
+                value=f"{MONEDA} {resumen['saldo_final']:,.2f}",
+                delta=f"+{((resumen['saldo_final']/resumen['saldo_inicial'] - 1) * 100):.1f}%" if resumen['saldo_inicial'] > 0 else "N/A"
+            )
+        
+        st.divider()
+        
+        # Mostrar tabla con paginación
+        st.markdown("#### 📋 Detalle por Periodo")
+        
+        # Opciones de visualización
+        col1, col2 = st.columns([3, 1])
+        
+        with col1:
+            st.info(f"📌 Total de periodos: **{len(df_tabla)}** | Frecuencia: **{datos['frecuencia']}**")
+        
+        with col2:
+            mostrar_todos = st.checkbox("Mostrar todos", value=False)
+        
+        if not mostrar_todos and len(df_tabla) > 20:
+            st.warning(f"⚠️ Mostrando primeros 20 periodos de {len(df_tabla)}. Activa 'Mostrar todos' para ver la tabla completa.")
+            df_mostrar = df_tabla.head(20)
+        else:
+            df_mostrar = df_tabla
+        
+        # Formatear y mostrar tabla
+        df_formatted = formatear_tabla_crecimiento(df_mostrar)
+        
+        st.dataframe(
+            df_formatted,
+            use_container_width=True,
+            hide_index=True,
+            height=min(600, 35 * len(df_mostrar) + 38)
+        )
+        
+        # Información adicional
+        if len(df_tabla) > 20 and not mostrar_todos:
+            st.info(f"💡 Se están ocultando {len(df_tabla) - 20} periodos. Descarga la tabla completa o activa 'Mostrar todos'.")
+        
+        # Botón de descarga
+        csv = df_tabla.to_csv(index=False).encode('utf-8')
+        st.download_button(
+            label=f"📥 Descargar tabla completa (CSV) - {len(df_tabla)} periodos",
+            data=csv,
+            file_name=f"crecimiento_inversion_{datos['plazo_años']}años.csv",
+            mime="text/csv",
+            use_container_width=True
+        )
     
     st.divider()
     
@@ -161,6 +264,60 @@ def render_acciones_page():
         - El capital neto ({MONEDA} {resultado_retiro['capital_neto']:,.2f}) se usa para generar rendimientos durante los retiros
         - El total retirado ({MONEDA} {resultado_retiro['total_retirado']:,.2f}) puede ser mayor al capital neto debido a los intereses generados durante el periodo de retiro
         """)
+    
+    st.divider()
+    
+    # Botón para exportar a PDF
+    st.header("📄 Exportar Resultados")
+    
+    col1, col2 = st.columns([3, 1])
+    
+    with col1:
+        st.info("💾 Descarga un reporte completo en PDF con todos los resultados de tu inversión")
+    
+    with col2:
+        # Preparar datos para el PDF
+        resultados_vf_pdf = {
+            'vf': vf,
+            'inversion_total': inversion_total,
+            'beneficio_bruto': beneficio_bruto
+        }
+        
+        if tipo_retiro == "Retiro Total":
+            resultados_retiro_pdf = {
+                'vf': vf,
+                'impuesto': impuesto,
+                'monto_neto': monto_neto
+            }
+            tipo_retiro_pdf = "total"
+        else:
+            resultados_retiro_pdf = {
+                'vf': vf,
+                'impuesto': resultado_retiro['impuesto'],
+                'capital_neto': resultado_retiro['capital_neto'],
+                'retiro_mensual': resultado_retiro['retiro_mensual'],
+                'meses': meses_retiro,
+                'total_retirado': resultado_retiro['total_retirado']
+            }
+            tipo_retiro_pdf = "mensual"
+        
+        # Generar PDF
+        pdf_buffer = crear_pdf_acciones(
+            datos_entrada=datos,
+            resultados_vf=resultados_vf_pdf,
+            resultados_retiro=resultados_retiro_pdf,
+            tipo_retiro=tipo_retiro_pdf,
+            df_tabla=df_tabla_crecimiento
+        )
+        
+        st.download_button(
+            label="📥 Descargar PDF",
+            data=pdf_buffer,
+            file_name=f"reporte_acciones_{datos['plazo_años']}años.pdf",
+            mime="application/pdf",
+            use_container_width=True,
+            type="primary"
+        )
     
     st.divider()
     

@@ -7,6 +7,7 @@ from src.visualization.bond_charts import (
     crear_tabla_flujos,
     crear_grafico_composicion_bono
 )
+from src.utils.pdf_generator import crear_pdf_bonos
 
 
 def render_bonos_page():
@@ -256,14 +257,47 @@ def render_bonos_page():
         
         st.divider()
         
-        # Descargar datos
-        csv = df_flujos.to_csv(index=False).encode('utf-8')
-        st.download_button(
-            label="📥 Descargar tabla de flujos (CSV)",
-            data=csv,
-            file_name=f"flujos_bono_{valor_nominal}_{tasa_cupon_pct}pct.csv",
-            mime="text/csv"
-        )
+        # Botones de descarga
+        st.header("📄 Exportar Resultados")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            # Descargar CSV
+            csv = df_flujos.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                label="📥 Descargar tabla de flujos (CSV)",
+                data=csv,
+                file_name=f"flujos_bono_{valor_nominal}_{tasa_cupon_pct}pct.csv",
+                mime="text/csv",
+                use_container_width=True
+            )
+        
+        with col2:
+            # Preparar datos para el PDF
+            datos_entrada_pdf = {
+                'valor_nominal': valor_nominal,
+                'tasa_cupon_pct': tasa_cupon_pct,
+                'frecuencia': frecuencia_pago,
+                'plazo_años': plazo_años,
+                'tea_descuento_pct': tea_descuento_pct
+            }
+            
+            # Generar PDF
+            pdf_buffer = crear_pdf_bonos(
+                datos_entrada=datos_entrada_pdf,
+                resultados=resultado,
+                df_flujos=df_flujos
+            )
+            
+            st.download_button(
+                label="📥 Descargar Reporte PDF",
+                data=pdf_buffer,
+                file_name=f"reporte_bono_{valor_nominal}_{tasa_cupon_pct}pct.pdf",
+                mime="application/pdf",
+                use_container_width=True,
+                type="primary"
+            )
     
     else:
         st.info("👆 Ingresa los datos del bono y presiona el botón para calcular su valor presente.")

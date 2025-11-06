@@ -92,11 +92,11 @@ def render_formulario_entrada():
         tea_pct = st.number_input(
             "Tasa Efectiva Anual (TEA %)",
             min_value=0.0,
-            max_value=100.0,
+            max_value=50.0,
             value=10.0,
             step=0.5,
             format="%.2f",
-            help="Tasa de retorno anual esperada"
+            help="Tasa de retorno anual esperada (máximo 50%)"
         )
         
         tipo_bolsa = st.selectbox(
