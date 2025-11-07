@@ -1,4 +1,5 @@
 import streamlit as st
+import pandas as pd
 from src.ui.input_form import render_formulario_entrada
 from src.ui.display import (
     mostrar_resumen_inversion,
@@ -257,16 +258,111 @@ def render_acciones_page():
             total_retirado=resultado_retiro['total_retirado'],
             capital_neto=resultado_retiro['capital_neto'],
             impuesto=resultado_retiro['impuesto'],
-            tipo_bolsa=datos["tipo_bolsa"]
+            tipo_bolsa=datos["tipo_bolsa"],
+            retiro_mensual_bruto=resultado_retiro.get('retiro_mensual_bruto')
         )
         
         st.info(f"""
         💡 **Nota sobre retiros mensuales:**
-        - Se calcula una tasa mensual especial: (1/2) × TEA = {tasa_mensual_retiro*100:.2f}%
-        - Se aplican impuestos sobre las ganancias antes de calcular los retiros
-        - El capital neto ({MONEDA} {resultado_retiro['capital_neto']:,.2f}) se usa para generar rendimientos durante los retiros
-        - El total retirado ({MONEDA} {resultado_retiro['total_retirado']:,.2f}) puede ser mayor al capital neto debido a los intereses generados durante el periodo de retiro
+        - Base de cálculo: Valor Futuro completo ({MONEDA} {vf:,.2f})
+        - Tasa mensual de retiro: (1/2) × TEA = {tasa_mensual_retiro*100:.2f}%
+        - Impuesto del **5%** aplicado mensualmente solo a los intereses generados
+        - Retiro mensual bruto: {MONEDA} {resultado_retiro.get('retiro_mensual_bruto', 0):,.2f}
+        - Impuestos totales sobre intereses: {MONEDA} {resultado_retiro['impuesto']:,.2f}
+        - Total neto a retirar: {MONEDA} {resultado_retiro['total_retirado']:,.2f}
         """)
+        
+        st.divider()
+        
+        # Cronograma de retiros
+        st.subheader("📅 Cronograma de Retiros Mensuales")
+        
+        from src.utils.tables import generar_cronograma_retiros, generar_resumen_cronograma_retiros
+        
+        # Generar cronograma
+        df_cronograma = generar_cronograma_retiros(
+            vf=vf,
+            tasa_mensual_retiro=tasa_mensual_retiro,
+            meses=meses_retiro,
+            moneda=MONEDA
+        )
+        
+        # Resumen del cronograma
+        resumen_cronograma = generar_resumen_cronograma_retiros(df_cronograma, MONEDA)
+        
+        st.markdown("#### 📊 Resumen del Cronograma")
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            st.metric(
+                label="Saldo Inicial",
+                value=f"{MONEDA} {resumen_cronograma['saldo_inicial']:,.2f}"
+            )
+        
+        with col2:
+            st.metric(
+                label="Total Intereses",
+                value=f"{MONEDA} {resumen_cronograma['total_intereses']:,.2f}",
+                delta="Ganado"
+            )
+        
+        with col3:
+            st.metric(
+                label="Total Impuestos (5%)",
+                value=f"{MONEDA} {resumen_cronograma['total_impuestos']:,.2f}",
+                delta=f"-{MONEDA} {resumen_cronograma['total_impuestos']:,.2f}",
+                delta_color="inverse"
+            )
+        
+        with col4:
+            st.metric(
+                label="Total Neto Retirado",
+                value=f"{MONEDA} {resumen_cronograma['total_retiro_neto']:,.2f}"
+            )
+        
+        st.divider()
+        
+        # Mostrar tabla con opciones
+        st.markdown("#### 📋 Detalle Mes a Mes")
+        
+        # Opciones de visualización
+        col1, col2 = st.columns([2, 1])
+        
+        with col1:
+            mostrar_todos_meses = st.checkbox(
+                "Mostrar todos los meses",
+                value=False,
+                help="Si está desmarcado, muestra solo los primeros 12 y últimos 12 meses"
+            )
+        
+        with col2:
+            formato_miles = st.checkbox(
+                "Formato con separador de miles",
+                value=True,
+                help="Mostrar números con comas como separadores"
+            )
+        
+        # Preparar tabla para mostrar
+        if mostrar_todos_meses:
+            df_mostrar = df_cronograma.copy()
+        else:
+            if len(df_cronograma) > 24:
+                df_primeros = df_cronograma.head(12)
+                df_ultimos = df_cronograma.tail(12)
+                df_mostrar = pd.concat([df_primeros, df_ultimos])
+                st.info(f"📌 Mostrando los primeros 12 y últimos 12 meses de {meses_retiro} meses totales")
+            else:
+                df_mostrar = df_cronograma.copy()
+        
+        # Formatear para visualización
+        if formato_miles:
+            df_display = df_mostrar.copy()
+            for col in df_display.columns:
+                if col != 'Mes':
+                    df_display[col] = df_display[col].apply(lambda x: f"{x:,.2f}")
+            st.dataframe(df_display, use_container_width=True, height=400)
+        else:
+            st.dataframe(df_mostrar, use_container_width=True, height=400)
     
     st.divider()
     

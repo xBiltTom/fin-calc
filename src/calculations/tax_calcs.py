@@ -75,33 +75,72 @@ def calcular_retiro_mensual_con_impuestos(
     tipo_bolsa: str
 ) -> dict:
     """
-    Calcula el monto de retiro mensual considerando impuestos sobre las ganancias.
+    Calcula el monto de retiro mensual considerando impuestos.
+    
+    IMPORTANTE: Para retiro mensual:
+    - Base de cálculo: Valor Futuro completo (sin restar impuestos)
+    - Impuesto fijo del 5% (independiente de bolsa nacional o extranjera)
+    - Se aplica SOLO a los intereses generados mensualmente
+    - TEA mensual: 50% de la TEA original
     
     Args:
-        vf: Valor Futuro acumulado
-        beneficio_bruto: Ganancia antes de impuestos (VF - Inversión Total)
-        tasa_mensual_retiro: Tasa mensual de retiro
+        vf: Valor Futuro acumulado (base completa)
+        beneficio_bruto: No se usa en este cálculo (mantenido por compatibilidad)
+        tasa_mensual_retiro: Tasa mensual de retiro (50% de TEA original)
         meses: Número de meses de retiro
-        tipo_bolsa: "Nacional" o "Extranjera"
+        tipo_bolsa: No afecta el cálculo (siempre 5% en retiro mensual)
     
     Returns:
         Diccionario con cálculos detallados de retiro mensual
     """
-    # Calcular impuesto sobre la ganancia
-    impuesto = calcular_impuesto_retiro_total(beneficio_bruto, tipo_bolsa)
+    # Impuesto fijo del 5% para retiros mensuales
+    IMPUESTO_RETIRO_MENSUAL = 0.05
     
-    # Capital neto disponible después de impuestos
-    capital_neto = vf - impuesto
+    # Simular retiros mes a mes para calcular impuestos sobre intereses
+    saldo = vf
+    total_retiro_bruto = 0
+    total_impuestos = 0
+    total_retiro_neto = 0
     
-    # Calcular retiro mensual con el capital neto
-    retiro_mensual = calcular_retiro_mensual(capital_neto, tasa_mensual_retiro, meses)
+    # Calcular retiro mensual bruto (sin impuestos)
+    if tasa_mensual_retiro == 0:
+        retiro_mensual_bruto = vf / meses if meses > 0 else 0
+    else:
+        # Fórmula de anualidad: C = VP * [i / (1 - (1 + i)^-n)]
+        retiro_mensual_bruto = vf * (tasa_mensual_retiro / (1 - (1 + tasa_mensual_retiro) ** -meses))
     
-    # Total a retirar
-    total_retirado = retiro_mensual * meses
+    # Simular cada mes para calcular intereses e impuestos
+    for mes in range(meses):
+        # Interés generado este mes sobre el saldo
+        interes_mes = saldo * tasa_mensual_retiro
+        
+        # Impuesto del 5% sobre el interés generado
+        impuesto_mes = interes_mes * IMPUESTO_RETIRO_MENSUAL
+        
+        # Capital que se retira (retiro - interés)
+        capital_retirado = retiro_mensual_bruto - interes_mes
+        
+        # Retiro neto mensual (retiro bruto - impuesto sobre interés)
+        retiro_neto_mes = retiro_mensual_bruto - impuesto_mes
+        
+        # Actualizar totales
+        total_retiro_bruto += retiro_mensual_bruto
+        total_impuestos += impuesto_mes
+        total_retiro_neto += retiro_neto_mes
+        
+        # Actualizar saldo (saldo + interés - retiro bruto)
+        saldo = saldo + interes_mes - retiro_mensual_bruto
+        
+        # Ajustar saldo si es el último mes (por redondeos)
+        if mes == meses - 1 and abs(saldo) < 1:
+            saldo = 0
     
     return {
-        'impuesto': impuesto,
-        'capital_neto': capital_neto,
-        'retiro_mensual': retiro_mensual,
-        'total_retirado': total_retirado
+        'impuesto': total_impuestos,
+        'capital_neto': vf,  # Base completa para retiros mensuales
+        'retiro_mensual': retiro_mensual_bruto - (total_impuestos / meses),  # Retiro neto promedio
+        'retiro_mensual_bruto': retiro_mensual_bruto,
+        'retiro_mensual_neto': retiro_mensual_bruto - (total_impuestos / meses),
+        'total_retirado': total_retiro_neto,
+        'total_impuestos_mensuales': total_impuestos
     }

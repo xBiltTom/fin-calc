@@ -50,12 +50,14 @@ def calcular_escenario(
     # Retiro total
     impuesto_total = calcular_impuesto_retiro_total(beneficio_bruto, tipo_bolsa)
     monto_neto_total = calcular_monto_neto_retiro_total(vf, impuesto_total)
+    ganancia_neta_total = monto_neto_total - inversion_total
     
     # Retiro mensual con impuestos
     tasa_mensual_retiro = calcular_tasa_mensual_retiro(tea)
     retiro_mensual_info = calcular_retiro_mensual_con_impuestos(
         vf, beneficio_bruto, tasa_mensual_retiro, meses_retiro, tipo_bolsa
     )
+    ganancia_neta_mensual = retiro_mensual_info['total_retirado'] - inversion_total
     
     # Edad de jubilación
     edad_jubilacion = edad_actual + plazo_años
@@ -67,9 +69,17 @@ def calcular_escenario(
         'vf': vf,
         'inversion_total': inversion_total,
         'beneficio_bruto': beneficio_bruto,
+        # Retiro total
         'impuesto_total': impuesto_total,
         'monto_neto_total': monto_neto_total,
-        'retiro_mensual': retiro_mensual_info['retiro_mensual'],
+        'ganancia_neta_total': ganancia_neta_total,
+        # Retiro mensual
+        'meses_retiro': meses_retiro,
+        'retiro_mensual_bruto': retiro_mensual_info.get('retiro_mensual_bruto', retiro_mensual_info['retiro_mensual']),
+        'retiro_mensual_neto': retiro_mensual_info['retiro_mensual'],
+        'impuesto_mensual': retiro_mensual_info['impuesto'],
+        'total_retiro_mensual': retiro_mensual_info['total_retirado'],
+        'ganancia_neta_mensual': ganancia_neta_mensual,
         'capital_neto_mensual': retiro_mensual_info['capital_neto']
     }
 
@@ -86,6 +96,23 @@ def render_comparacion_escenarios(datos_base: dict):
     st.markdown("""
     Compara diferentes escenarios de inversión para tomar mejores decisiones sobre tu jubilación.
     """)
+    
+    # Seleccionar tipo de retiro
+    col_retiro1, col_retiro2 = st.columns(2)
+    
+    with col_retiro1:
+        tipo_retiro_comparacion = st.radio(
+            "Tipo de retiro a comparar:",
+            options=["Retiro Total", "Retiro Mensual"],
+            horizontal=True,
+            help="Selecciona si quieres comparar retiros totales o mensuales"
+        )
+    
+    with col_retiro2:
+        if tipo_retiro_comparacion == "Retiro Mensual":
+            st.info("💡 Podrás definir los meses de retiro para cada escenario")
+    
+    st.divider()
     
     # Seleccionar tipo de comparación
     tipo_comparacion = st.radio(
@@ -113,6 +140,15 @@ def render_comparacion_escenarios(datos_base: dict):
                 value=min(60, datos_base["edad_actual"] + 30),
                 step=1
             )
+            if tipo_retiro_comparacion == "Retiro Mensual":
+                meses_1 = st.number_input(
+                    "Meses de retiro 1",
+                    min_value=1,
+                    max_value=600,
+                    value=240,
+                    step=12,
+                    key="meses_edad_1"
+                )
         
         with col2:
             edad_2 = st.number_input(
@@ -122,6 +158,15 @@ def render_comparacion_escenarios(datos_base: dict):
                 value=min(65, datos_base["edad_actual"] + 35),
                 step=1
             )
+            if tipo_retiro_comparacion == "Retiro Mensual":
+                meses_2 = st.number_input(
+                    "Meses de retiro 2",
+                    min_value=1,
+                    max_value=600,
+                    value=240,
+                    step=12,
+                    key="meses_edad_2"
+                )
         
         with col3:
             edad_3 = st.number_input(
@@ -131,9 +176,20 @@ def render_comparacion_escenarios(datos_base: dict):
                 value=min(70, datos_base["edad_actual"] + 40),
                 step=1
             )
+            if tipo_retiro_comparacion == "Retiro Mensual":
+                meses_3 = st.number_input(
+                    "Meses de retiro 3",
+                    min_value=1,
+                    max_value=600,
+                    value=240,
+                    step=12,
+                    key="meses_edad_3"
+                )
         
         # Calcular escenarios
-        for i, edad in enumerate([edad_1, edad_2, edad_3], 1):
+        meses_lista = [meses_1, meses_2, meses_3] if tipo_retiro_comparacion == "Retiro Mensual" else [240, 240, 240]
+        
+        for i, (edad, meses) in enumerate(zip([edad_1, edad_2, edad_3], meses_lista), 1):
             plazo = edad - datos_base["edad_actual"]
             escenario = calcular_escenario(
                 vp=datos_base["valor_presente"],
@@ -143,6 +199,7 @@ def render_comparacion_escenarios(datos_base: dict):
                 plazo_años=plazo,
                 tipo_bolsa=datos_base["tipo_bolsa"],
                 edad_actual=datos_base["edad_actual"],
+                meses_retiro=meses,
                 aporte_al_inicio=datos_base["aporte_al_inicio"]
             )
             escenario['nombre'] = f"Jubilación a los {edad} años"
@@ -162,6 +219,15 @@ def render_comparacion_escenarios(datos_base: dict):
                 step=0.5,
                 format="%.2f"
             )
+            if tipo_retiro_comparacion == "Retiro Mensual":
+                meses_tea_1 = st.number_input(
+                    "Meses de retiro 1",
+                    min_value=1,
+                    max_value=600,
+                    value=240,
+                    step=12,
+                    key="meses_tea_1"
+                )
         
         with col2:
             tea_2 = st.number_input(
@@ -172,6 +238,15 @@ def render_comparacion_escenarios(datos_base: dict):
                 step=0.5,
                 format="%.2f"
             )
+            if tipo_retiro_comparacion == "Retiro Mensual":
+                meses_tea_2 = st.number_input(
+                    "Meses de retiro 2",
+                    min_value=1,
+                    max_value=600,
+                    value=240,
+                    step=12,
+                    key="meses_tea_2"
+                )
         
         with col3:
             tea_3 = st.number_input(
@@ -182,9 +257,20 @@ def render_comparacion_escenarios(datos_base: dict):
                 step=0.5,
                 format="%.2f"
             )
+            if tipo_retiro_comparacion == "Retiro Mensual":
+                meses_tea_3 = st.number_input(
+                    "Meses de retiro 3",
+                    min_value=1,
+                    max_value=600,
+                    value=240,
+                    step=12,
+                    key="meses_tea_3"
+                )
         
         # Calcular escenarios
-        for i, tea_pct in enumerate([tea_1, tea_2, tea_3], 1):
+        meses_lista_tea = [meses_tea_1, meses_tea_2, meses_tea_3] if tipo_retiro_comparacion == "Retiro Mensual" else [240, 240, 240]
+        
+        for i, (tea_pct, meses) in enumerate(zip([tea_1, tea_2, tea_3], meses_lista_tea), 1):
             escenario = calcular_escenario(
                 vp=datos_base["valor_presente"],
                 aporte=datos_base["aporte_periodico"],
@@ -193,6 +279,7 @@ def render_comparacion_escenarios(datos_base: dict):
                 plazo_años=datos_base["plazo_años"],
                 tipo_bolsa=datos_base["tipo_bolsa"],
                 edad_actual=datos_base["edad_actual"],
+                meses_retiro=meses,
                 aporte_al_inicio=datos_base["aporte_al_inicio"]
             )
             escenario['nombre'] = f"TEA {tea_pct}%"
@@ -202,7 +289,7 @@ def render_comparacion_escenarios(datos_base: dict):
         st.subheader("🔀 Comparar Múltiples Factores")
         
         st.markdown("**Escenario Conservador**")
-        col1, col2 = st.columns(2)
+        col1, col2, col3 = st.columns(3)
         with col1:
             edad_cons = st.number_input(
                 "Edad de jubilación",
@@ -222,9 +309,19 @@ def render_comparacion_escenarios(datos_base: dict):
                 format="%.2f",
                 key="tea_cons"
             )
+        with col3:
+            if tipo_retiro_comparacion == "Retiro Mensual":
+                meses_cons = st.number_input(
+                    "Meses de retiro",
+                    min_value=1,
+                    max_value=600,
+                    value=240,
+                    step=12,
+                    key="meses_cons"
+                )
         
         st.markdown("**Escenario Moderado**")
-        col1, col2 = st.columns(2)
+        col1, col2, col3 = st.columns(3)
         with col1:
             edad_mod = st.number_input(
                 "Edad de jubilación",
@@ -244,9 +341,19 @@ def render_comparacion_escenarios(datos_base: dict):
                 format="%.2f",
                 key="tea_mod"
             )
+        with col3:
+            if tipo_retiro_comparacion == "Retiro Mensual":
+                meses_mod = st.number_input(
+                    "Meses de retiro",
+                    min_value=1,
+                    max_value=600,
+                    value=240,
+                    step=12,
+                    key="meses_mod"
+                )
         
         st.markdown("**Escenario Agresivo**")
-        col1, col2 = st.columns(2)
+        col1, col2, col3 = st.columns(3)
         with col1:
             edad_agr = st.number_input(
                 "Edad de jubilación",
@@ -266,15 +373,26 @@ def render_comparacion_escenarios(datos_base: dict):
                 format="%.2f",
                 key="tea_agr"
             )
+        with col3:
+            if tipo_retiro_comparacion == "Retiro Mensual":
+                meses_agr = st.number_input(
+                    "Meses de retiro",
+                    min_value=1,
+                    max_value=600,
+                    value=240,
+                    step=12,
+                    key="meses_agr"
+                )
         
         # Calcular escenarios
+        meses_lista_ambos = [meses_cons, meses_mod, meses_agr] if tipo_retiro_comparacion == "Retiro Mensual" else [240, 240, 240]
         configs = [
-            ("Conservador", edad_cons, tea_cons),
-            ("Moderado", edad_mod, tea_mod),
-            ("Agresivo", edad_agr, tea_agr)
+            ("Conservador", edad_cons, tea_cons, meses_lista_ambos[0]),
+            ("Moderado", edad_mod, tea_mod, meses_lista_ambos[1]),
+            ("Agresivo", edad_agr, tea_agr, meses_lista_ambos[2])
         ]
         
-        for nombre, edad, tea_pct in configs:
+        for nombre, edad, tea_pct, meses in configs:
             plazo = edad - datos_base["edad_actual"]
             escenario = calcular_escenario(
                 vp=datos_base["valor_presente"],
@@ -284,6 +402,7 @@ def render_comparacion_escenarios(datos_base: dict):
                 plazo_años=plazo,
                 tipo_bolsa=datos_base["tipo_bolsa"],
                 edad_actual=datos_base["edad_actual"],
+                meses_retiro=meses,
                 aporte_al_inicio=datos_base["aporte_al_inicio"]
             )
             escenario['nombre'] = nombre
@@ -296,21 +415,42 @@ def render_comparacion_escenarios(datos_base: dict):
         
         st.subheader("📋 Tabla Comparativa")
         
-        # Crear DataFrame comparativo
-        df_comparacion = pd.DataFrame([
-            {
-                'Escenario': e['nombre'],
-                'Plazo (años)': e['plazo_años'],
-                'Edad Jubilación': e['edad_jubilacion'],
-                'TEA (%)': f"{e['tea']*100:.2f}%",
-                f'Valor Futuro ({MONEDA})': f"{e['vf']:,.2f}",
-                f'Inversión Total ({MONEDA})': f"{e['inversion_total']:,.2f}",
-                f'Ganancia ({MONEDA})': f"{e['beneficio_bruto']:,.2f}",
-                f'Impuesto ({MONEDA})': f"{e['impuesto_total']:,.2f}",
-                f'Retiro Mensual ({MONEDA})': f"{e['retiro_mensual']:,.2f}"
-            }
-            for e in escenarios
-        ])
+        # Crear DataFrame comparativo según tipo de retiro
+        if tipo_retiro_comparacion == "Retiro Total":
+            df_comparacion = pd.DataFrame([
+                {
+                    'Escenario': e['nombre'],
+                    'Plazo (años)': e['plazo_años'],
+                    'Edad Jubilación': e['edad_jubilacion'],
+                    'TEA (%)': f"{e['tea']*100:.2f}%",
+                    f'Valor Futuro ({MONEDA})': f"{e['vf']:,.2f}",
+                    f'Inversión Total ({MONEDA})': f"{e['inversion_total']:,.2f}",
+                    f'Ganancia Bruta ({MONEDA})': f"{e['beneficio_bruto']:,.2f}",
+                    f'Impuesto ({MONEDA})': f"{e['impuesto_total']:,.2f}",
+                    f'Ganancia Neta ({MONEDA})': f"{e['ganancia_neta_total']:,.2f}",
+                    f'Monto Neto a Recibir ({MONEDA})': f"{e['monto_neto_total']:,.2f}"
+                }
+                for e in escenarios
+            ])
+        else:  # Retiro Mensual
+            df_comparacion = pd.DataFrame([
+                {
+                    'Escenario': e['nombre'],
+                    'Plazo (años)': e['plazo_años'],
+                    'Edad Jubilación': e['edad_jubilacion'],
+                    'TEA (%)': f"{e['tea']*100:.2f}%",
+                    f'Valor Futuro ({MONEDA})': f"{e['vf']:,.2f}",
+                    f'Inversión Total ({MONEDA})': f"{e['inversion_total']:,.2f}",
+                    f'Ganancia Bruta ({MONEDA})': f"{e['beneficio_bruto']:,.2f}",
+                    f'Impuesto Total 5% ({MONEDA})': f"{e['impuesto_mensual']:,.2f}",
+                    f'Ganancia Neta ({MONEDA})': f"{e['ganancia_neta_mensual']:,.2f}",
+                    'Meses de Retiro': e['meses_retiro'],
+                    f'Retiro Mensual Bruto ({MONEDA})': f"{e['retiro_mensual_bruto']:,.2f}",
+                    f'Retiro Mensual Neto ({MONEDA})': f"{e['retiro_mensual_neto']:,.2f}",
+                    f'Total Neto Retirado ({MONEDA})': f"{e['total_retiro_mensual']:,.2f}"
+                }
+                for e in escenarios
+            ])
         
         st.dataframe(df_comparacion, use_container_width=True, hide_index=True)
         
@@ -319,7 +459,10 @@ def render_comparacion_escenarios(datos_base: dict):
         # Gráficos comparativos
         st.subheader("📊 Gráficos Comparativos")
         
-        tab1, tab2, tab3 = st.tabs(["💰 Valor Futuro", "💳 Retiro Mensual", "📈 Composición"])
+        if tipo_retiro_comparacion == "Retiro Total":
+            tab1, tab2, tab3 = st.tabs(["💰 Valor Futuro", "💵 Monto Neto", "� Composición"])
+        else:
+            tab1, tab2, tab3 = st.tabs(["💰 Valor Futuro", "�💳 Retiro Mensual", "📈 Composición"])
         
         with tab1:
             # Gráfico de barras de Valor Futuro
@@ -345,25 +488,58 @@ def render_comparacion_escenarios(datos_base: dict):
             st.plotly_chart(fig_vf, use_container_width=True)
         
         with tab2:
-            # Gráfico de barras de Retiro Mensual
-            fig_retiro = go.Figure()
-            
-            fig_retiro.add_trace(go.Bar(
-                x=[e['nombre'] for e in escenarios],
-                y=[e['retiro_mensual'] for e in escenarios],
-                text=[f"{MONEDA} {e['retiro_mensual']:,.0f}" for e in escenarios],
-                textposition='outside',
-                marker_color='#FF6B6B',
-                hovertemplate='<b>%{x}</b><br>' + f'Retiro Mensual: {MONEDA} %{{y:,.2f}}<extra></extra>'
-            ))
-            
-            fig_retiro.update_layout(
-                title='Comparación de Retiro Mensual (20 años)',
-                xaxis_title='Escenario',
-                yaxis_title=f'Retiro Mensual ({MONEDA})',
-                template='plotly_white',
-                height=500
-            )
+            if tipo_retiro_comparacion == "Retiro Total":
+                # Gráfico de barras de Monto Neto
+                fig_retiro = go.Figure()
+                
+                fig_retiro.add_trace(go.Bar(
+                    x=[e['nombre'] for e in escenarios],
+                    y=[e['monto_neto_total'] for e in escenarios],
+                    text=[f"{MONEDA} {e['monto_neto_total']:,.0f}" for e in escenarios],
+                    textposition='outside',
+                    marker_color='#FF6B6B',
+                    hovertemplate='<b>%{x}</b><br>' + f'Monto Neto: {MONEDA} %{{y:,.2f}}<extra></extra>'
+                ))
+                
+                fig_retiro.update_layout(
+                    title='Comparación de Monto Neto (Retiro Total)',
+                    xaxis_title='Escenario',
+                    yaxis_title=f'Monto Neto ({MONEDA})',
+                    template='plotly_white',
+                    height=500
+                )
+            else:
+                # Gráfico de barras de Retiro Mensual Bruto
+                fig_retiro = go.Figure()
+                
+                fig_retiro.add_trace(go.Bar(
+                    x=[e['nombre'] for e in escenarios],
+                    y=[e['retiro_mensual_bruto'] for e in escenarios],
+                    text=[f"{MONEDA} {e['retiro_mensual_bruto']:,.0f}" for e in escenarios],
+                    textposition='outside',
+                    marker_color='#FF6B6B',
+                    name='Retiro Bruto',
+                    hovertemplate='<b>%{x}</b><br>' + f'Retiro Mensual Bruto: {MONEDA} %{{y:,.2f}}<extra></extra>'
+                ))
+                
+                fig_retiro.add_trace(go.Bar(
+                    x=[e['nombre'] for e in escenarios],
+                    y=[e['retiro_mensual_neto'] for e in escenarios],
+                    text=[f"{MONEDA} {e['retiro_mensual_neto']:,.0f}" for e in escenarios],
+                    textposition='outside',
+                    marker_color='#95E1D3',
+                    name='Retiro Neto',
+                    hovertemplate='<b>%{x}</b><br>' + f'Retiro Mensual Neto: {MONEDA} %{{y:,.2f}}<extra></extra>'
+                ))
+                
+                fig_retiro.update_layout(
+                    title='Comparación de Retiro Mensual (Bruto vs Neto)',
+                    xaxis_title='Escenario',
+                    yaxis_title=f'Retiro Mensual ({MONEDA})',
+                    template='plotly_white',
+                    height=500,
+                    barmode='group'
+                )
             
             st.plotly_chart(fig_retiro, use_container_width=True)
         
@@ -412,7 +588,11 @@ def render_comparacion_escenarios(datos_base: dict):
         st.subheader("💡 Análisis Comparativo")
         
         mejor_vf = max(escenarios, key=lambda x: x['vf'])
-        mejor_retiro = max(escenarios, key=lambda x: x['retiro_mensual'])
+        
+        if tipo_retiro_comparacion == "Retiro Total":
+            mejor_retiro = max(escenarios, key=lambda x: x['monto_neto_total'])
+        else:
+            mejor_retiro = max(escenarios, key=lambda x: x['total_retiro_mensual'])
         
         col1, col2 = st.columns(2)
         
@@ -427,14 +607,25 @@ def render_comparacion_escenarios(datos_base: dict):
             """)
         
         with col2:
-            st.success(f"""
-            **💳 Mejor Retiro Mensual**
-            
-            {mejor_retiro['nombre']}
-            - Retiro: {MONEDA} {mejor_retiro['retiro_mensual']:,.2f}/mes
-            - Plazo: {mejor_retiro['plazo_años']} años
-            - TEA: {mejor_retiro['tea']*100:.2f}%
-            """)
+            if tipo_retiro_comparacion == "Retiro Total":
+                st.success(f"""
+                **� Mejor Monto Neto (Retiro Total)**
+                
+                {mejor_retiro['nombre']}
+                - Monto Neto: {MONEDA} {mejor_retiro['monto_neto_total']:,.2f}
+                - Plazo: {mejor_retiro['plazo_años']} años
+                - TEA: {mejor_retiro['tea']*100:.2f}%
+                """)
+            else:
+                st.success(f"""
+                **�💳 Mejor Retiro Mensual**
+                
+                {mejor_retiro['nombre']}
+                - Retiro Bruto: {MONEDA} {mejor_retiro['retiro_mensual_bruto']:,.2f}/mes
+                - Total Neto Retirado: {MONEDA} {mejor_retiro['total_retiro_mensual']:,.2f}
+                - Plazo: {mejor_retiro['plazo_años']} años
+                - TEA: {mejor_retiro['tea']*100:.2f}%
+                """)
         
         # Descargar comparación
         csv = df_comparacion.to_csv(index=False).encode('utf-8')

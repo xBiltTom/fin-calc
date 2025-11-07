@@ -150,16 +150,14 @@ def crear_pdf_acciones(
     else:  # retiro mensual
         story.append(Paragraph("💳 Retiros Mensuales", heading_style))
         
-        tasa_impuesto = "5%" if datos_entrada['tipo_bolsa'] == "Nacional" else "29.5%"
-        
         retiro_tabla = [
             ['Concepto', 'Valor'],
-            ['Valor Futuro', f"USD {resultados_retiro['vf']:,.2f}"],
-            [f'Impuesto ({tasa_impuesto})', f"USD {resultados_retiro['impuesto']:,.2f}"],
-            ['Capital Neto Disponible', f"USD {resultados_retiro['capital_neto']:,.2f}"],
-            ['Retiro Mensual', f"USD {resultados_retiro['retiro_mensual']:,.2f}"],
+            ['Base de Cálculo (VF completo)', f"USD {resultados_retiro['vf']:,.2f}"],
+            ['Retiro Mensual Bruto', f"USD {resultados_retiro.get('retiro_mensual_bruto', resultados_retiro['retiro_mensual']):,.2f}"],
+            ['Impuestos sobre Intereses (5%)', f"USD {resultados_retiro['impuesto']:,.2f}"],
+            ['Retiro Mensual Neto', f"USD {resultados_retiro['retiro_mensual']:,.2f}"],
             ['Periodo de retiro', f"{resultados_retiro['meses']} meses ({resultados_retiro['meses']/12:.1f} años)"],
-            ['Total a Retirar', f"USD {resultados_retiro['total_retirado']:,.2f}"],
+            ['Total Neto a Retirar', f"USD {resultados_retiro['total_retirado']:,.2f}"],
         ]
         
         tabla_retiro = Table(retiro_tabla, colWidths=[2.5*inch, 3*inch])
@@ -175,6 +173,12 @@ def crear_pdf_acciones(
             ('GRID', (0, 0), (-1, -1), 1, colors.grey),
         ]))
         story.append(tabla_retiro)
+        
+        # Nota explicativa
+        nota_text = "Nota: Para retiros mensuales, el impuesto del 5% se aplica mensualmente solo sobre los intereses generados, independiente del tipo de bolsa."
+        story.append(Spacer(1, 0.1*inch))
+        story.append(Paragraph(nota_text, styles['Normal']))
+    
     
     story.append(Spacer(1, 0.3*inch))
     
