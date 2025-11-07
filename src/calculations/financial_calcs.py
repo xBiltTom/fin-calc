@@ -27,24 +27,34 @@ def calcular_vf_valor_presente(vp: float, tea: float, periodos: int) -> float:
     return vp * (1 + tea) ** periodos
 
 
-def calcular_vf_aportes_periodicos(aporte: float, tasa_periodo: float, num_periodos: int) -> float:
+def calcular_vf_aportes_periodicos(aporte: float, tasa_periodo: float, num_periodos: int, aporte_al_inicio: bool = False) -> float:
     """
-    Calcula el valor futuro de aportes periódicos (anualidad vencida).
+    Calcula el valor futuro de aportes periódicos.
     
     Args:
         aporte: Monto del aporte periódico
         tasa_periodo: Tasa efectiva del periodo
         num_periodos: Número total de periodos de aporte
+        aporte_al_inicio: True si el aporte es al inicio del periodo (anualidad anticipada),
+                          False si es al final (anualidad vencida)
     
     Returns:
         Valor Futuro acumulado
     """
     if tasa_periodo == 0:
         return aporte * num_periodos
-    return aporte * (((1 + tasa_periodo) ** num_periodos - 1) / tasa_periodo)
+    
+    # Anualidad vencida (aporte al final del periodo)
+    vf_vencida = aporte * (((1 + tasa_periodo) ** num_periodos - 1) / tasa_periodo)
+    
+    # Si es anualidad anticipada (aporte al inicio), multiplicar por (1 + tasa_periodo)
+    if aporte_al_inicio:
+        return vf_vencida * (1 + tasa_periodo)
+    
+    return vf_vencida
 
 
-def calcular_vf_combinado(vp: float, aporte: float, tea: float, frecuencia_anual: int, plazo_años: int) -> float:
+def calcular_vf_combinado(vp: float, aporte: float, tea: float, frecuencia_anual: int, plazo_años: int, aporte_al_inicio: bool = False) -> float:
     """
     Calcula el valor futuro combinando un valor presente inicial y aportes periódicos.
     
@@ -54,6 +64,8 @@ def calcular_vf_combinado(vp: float, aporte: float, tea: float, frecuencia_anual
         tea: Tasa Efectiva Anual (en decimal)
         frecuencia_anual: Número de periodos por año
         plazo_años: Plazo en años
+        aporte_al_inicio: True si el aporte es al inicio del periodo (anualidad anticipada),
+                          False si es al final (anualidad vencida)
     
     Returns:
         Valor Futuro total
@@ -62,7 +74,7 @@ def calcular_vf_combinado(vp: float, aporte: float, tea: float, frecuencia_anual
     num_periodos = plazo_años * frecuencia_anual
     
     vf_presente = calcular_vf_valor_presente(vp, tea, plazo_años) if vp > 0 else 0
-    vf_aportes = calcular_vf_aportes_periodicos(aporte, tasa_periodo, num_periodos) if aporte > 0 else 0
+    vf_aportes = calcular_vf_aportes_periodicos(aporte, tasa_periodo, num_periodos, aporte_al_inicio) if aporte > 0 else 0
     
     return vf_presente + vf_aportes
 

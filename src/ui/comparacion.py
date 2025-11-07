@@ -19,7 +19,8 @@ def calcular_escenario(
     plazo_años: int,
     tipo_bolsa: str,
     edad_actual: int,
-    meses_retiro: int = 240
+    meses_retiro: int = 240,
+    aporte_al_inicio: bool = False
 ) -> dict:
     """
     Calcula un escenario completo de inversión.
@@ -33,12 +34,13 @@ def calcular_escenario(
         tipo_bolsa: Nacional o Extranjera
         edad_actual: Edad actual del inversionista
         meses_retiro: Meses de retiro (default 240 = 20 años)
+        aporte_al_inicio: True si el aporte es al inicio del periodo
     
     Returns:
         Diccionario con todos los cálculos del escenario
     """
     # Calcular VF
-    vf = calcular_vf_combinado(vp, aporte, tea, frecuencia_anual, plazo_años)
+    vf = calcular_vf_combinado(vp, aporte, tea, frecuencia_anual, plazo_años, aporte_al_inicio)
     
     # Calcular inversión total y beneficio
     total_aportes = aporte * frecuencia_anual * plazo_años
@@ -140,7 +142,8 @@ def render_comparacion_escenarios(datos_base: dict):
                 frecuencia_anual=datos_base["frecuencia_anual"],
                 plazo_años=plazo,
                 tipo_bolsa=datos_base["tipo_bolsa"],
-                edad_actual=datos_base["edad_actual"]
+                edad_actual=datos_base["edad_actual"],
+                aporte_al_inicio=datos_base["aporte_al_inicio"]
             )
             escenario['nombre'] = f"Jubilación a los {edad} años"
             escenarios.append(escenario)
@@ -189,7 +192,8 @@ def render_comparacion_escenarios(datos_base: dict):
                 frecuencia_anual=datos_base["frecuencia_anual"],
                 plazo_años=datos_base["plazo_años"],
                 tipo_bolsa=datos_base["tipo_bolsa"],
-                edad_actual=datos_base["edad_actual"]
+                edad_actual=datos_base["edad_actual"],
+                aporte_al_inicio=datos_base["aporte_al_inicio"]
             )
             escenario['nombre'] = f"TEA {tea_pct}%"
             escenarios.append(escenario)
@@ -279,7 +283,8 @@ def render_comparacion_escenarios(datos_base: dict):
                 frecuencia_anual=datos_base["frecuencia_anual"],
                 plazo_años=plazo,
                 tipo_bolsa=datos_base["tipo_bolsa"],
-                edad_actual=datos_base["edad_actual"]
+                edad_actual=datos_base["edad_actual"],
+                aporte_al_inicio=datos_base["aporte_al_inicio"]
             )
             escenario['nombre'] = nombre
             escenarios.append(escenario)

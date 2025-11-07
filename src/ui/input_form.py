@@ -51,6 +51,12 @@ def render_formulario_entrada():
             index=0,
             help="¿Con qué frecuencia realizarás los aportes?"
         )
+        
+        aporte_al_inicio = st.checkbox(
+            "Aporte al inicio del periodo",
+            value=False,
+            help="Si está marcado, el aporte se realiza al inicio del periodo (anualidad anticipada). Si no, se realiza al final (anualidad vencida)."
+        )
     
     st.divider()
     
@@ -120,5 +126,6 @@ def render_formulario_entrada():
         "plazo_años": plazo_años,
         "tea": tea_pct / 100,  # Convertir a decimal
         "tea_pct": tea_pct,
-        "tipo_bolsa": tipo_bolsa
+        "tipo_bolsa": tipo_bolsa,
+        "aporte_al_inicio": aporte_al_inicio
     }

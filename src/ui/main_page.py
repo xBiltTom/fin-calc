@@ -64,7 +64,8 @@ def render_acciones_page():
         aporte=datos["aporte_periodico"],
         tea=datos["tea"],
         frecuencia_anual=datos["frecuencia_anual"],
-        plazo_años=datos["plazo_años"]
+        plazo_años=datos["plazo_años"],
+        aporte_al_inicio=datos["aporte_al_inicio"]
     )
     
     # Calcular inversión total y beneficio
@@ -79,7 +80,8 @@ def render_acciones_page():
         tea=datos["tea"],
         frecuencia_anual=datos["frecuencia_anual"],
         plazo_años=datos["plazo_años"],
-        moneda=MONEDA
+        moneda=MONEDA,
+        aporte_al_inicio=datos["aporte_al_inicio"]
     )
     
     # Mostrar resultados VF
@@ -99,7 +101,8 @@ def render_acciones_page():
             aporte=datos["aporte_periodico"],
             tea=datos["tea"],
             frecuencia_anual=datos["frecuencia_anual"],
-            plazo_años=datos["plazo_años"]
+            plazo_años=datos["plazo_años"],
+            aporte_al_inicio=datos["aporte_al_inicio"]
         )
         fig_evolucion = crear_grafico_comparativo(df_evolucion, MONEDA)
         st.plotly_chart(fig_evolucion, use_container_width=True)

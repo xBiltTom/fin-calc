@@ -8,7 +8,8 @@ def generar_tabla_crecimiento(
     tea: float,
     frecuencia_anual: int,
     plazo_años: int,
-    moneda: str = "USD"
+    moneda: str = "USD",
+    aporte_al_inicio: bool = False
 ) -> pd.DataFrame:
     """
     Genera una tabla detallada del crecimiento de la inversión periodo a periodo.
@@ -20,6 +21,8 @@ def generar_tabla_crecimiento(
         frecuencia_anual: Número de periodos por año
         plazo_años: Plazo en años
         moneda: Símbolo de la moneda
+        aporte_al_inicio: True si el aporte es al inicio del periodo,
+                          False si es al final del periodo
     
     Returns:
         DataFrame con columnas: Periodo, Saldo Inicial, Aporte, Interés, Saldo Final
@@ -33,8 +36,16 @@ def generar_tabla_crecimiento(
     for periodo in range(1, num_periodos + 1):
         saldo_inicial = saldo
         aporte_periodo = aporte
-        interes_ganado = (saldo_inicial + aporte_periodo) * tasa_periodo
-        saldo_final = saldo_inicial + aporte_periodo + interes_ganado
+        
+        if aporte_al_inicio:
+            # Aporte al inicio: primero se aporta, luego se calcula interés
+            base_interes = saldo_inicial + aporte_periodo
+            interes_ganado = base_interes * tasa_periodo
+            saldo_final = base_interes + interes_ganado
+        else:
+            # Aporte al final: primero se calcula interés, luego se aporta
+            interes_ganado = saldo_inicial * tasa_periodo
+            saldo_final = saldo_inicial + interes_ganado + aporte_periodo
         
         data.append({
             'Periodo': periodo,

@@ -8,7 +8,8 @@ def generar_evolucion_inversion(
     aporte: float,
     tea: float,
     frecuencia_anual: int,
-    plazo_años: int
+    plazo_años: int,
+    aporte_al_inicio: bool = False
 ) -> pd.DataFrame:
     """
     Genera un DataFrame con la evolución de la inversión periodo a periodo.
@@ -19,6 +20,8 @@ def generar_evolucion_inversion(
         tea: Tasa Efectiva Anual (en decimal)
         frecuencia_anual: Número de periodos por año
         plazo_años: Plazo en años
+        aporte_al_inicio: True si el aporte es al inicio del periodo,
+                          False si es al final del periodo
     
     Returns:
         DataFrame con las columnas: periodo, inversion_acumulada, valor_con_interes
@@ -39,7 +42,12 @@ def generar_evolucion_inversion(
         
         if periodo < num_periodos:
             inversion_sin_interes += aporte
-            valor_con_interes = (valor_con_interes + aporte) * (1 + tasa_periodo)
+            if aporte_al_inicio:
+                # Aporte al inicio: primero se aporta, luego se calcula interés
+                valor_con_interes = (valor_con_interes + aporte) * (1 + tasa_periodo)
+            else:
+                # Aporte al final: primero se calcula interés, luego se aporta
+                valor_con_interes = valor_con_interes * (1 + tasa_periodo) + aporte
     
     return pd.DataFrame(data)
 

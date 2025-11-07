@@ -29,17 +29,30 @@ def main():
     st.sidebar.info("""
     **Calculadora Financiera**
     
-    Herramienta para calcular y proyectar inversiones en acciones y bonos.
+    Herramienta completa para calcular y proyectar inversiones en acciones y bonos.
     
+    ✅ Todas las funcionalidades activas
     📅 Versión 1.0
     """)
     
     st.sidebar.markdown("---")
-    st.sidebar.markdown("### 📚 Secciones disponibles")
-    st.sidebar.markdown("""
-    - **🏠 Inicio**: Información general
-    - **📈 Acciones**: Calculadora activa
-    - **📊 Bonos**: Próximamente
+    st.sidebar.markdown("### 📚 Secciones")
+    st.sidebar.success("""
+    **🏠 Inicio**
+    Información general y guía de uso
+    
+    **📈 Acciones**
+    - Valor futuro de inversiones
+    - Retiros con impuestos
+    - Comparación de escenarios
+    - Tabla detallada de crecimiento
+    - Exportación a PDF
+    
+    **📊 Bonos**
+    - Valoración de bonos
+    - Flujos de caja periódicos
+    - Análisis de cotización
+    - Exportación a PDF
     """)
     
     # Renderizar la página seleccionada
